@@ -6,28 +6,31 @@ A set of supporting functions for making the interim prompts we use to
 generate a final engineered image prompt.
 '''
 
-# These constants are not exported. They are written this way for formatting
-# purposes. We don't want a bunch of tab characters going to GPT.
+# These constants are written this way for formatting purposes.
+# We don't want a bunch of tab characters going to GPT.
 SUBJECT_PROMPT = '''Create a detailed physical description of the following subject and setting in 100 words.
 
-Subject: {}
+Subject: {subject}
 
-Setting: {}
+Setting: {setting}
 '''
 
-STYLE_PROMPT = 'Create a 50 word summary of the visual aspects of the following artistic style: {}'
+NATIVE_SETTING_PROMPT = 'Take the following character and describe it in an appropriate setting in 100 words\n{character}'
+
+STYLE_PROMPT = 'Create a 50 word summary of the visual aspects of the following artistic style: {style}'
 
 IMG_PROMPT_REQUEST = '''Write a prompt for an image generator using the following content and style in 150 words.
 
-Image content: {}
+Image content: {content}
 
-Image Style: {}
+Image Style: {style}
 '''
 
-CHARACTER_PROMPT = 'Give a detailed physical description of the character {} in 50 words.'
+CHARACTER_PROMPT = 'Give a detailed physical description of the character {character} in 50 words.'
 
 
-def fetch_scene_details(client, model, subject, setting):
+
+def fetch_scene_details(client, model, subject, setting=None):
     '''
     Use the supplied args and OpenAI client to fetch a more
     detailed description from OpenAI.
@@ -37,7 +40,10 @@ def fetch_scene_details(client, model, subject, setting):
     subject (str) -- a string describing a subject in plain english, for LLM use.
     setting (str) -- a string describing a setting in plain english, for LLM use.
     '''
-    prompt_content = SUBJECT_PROMPT.format(subject, setting)
+    if setting == None:
+        prompt_content = NATIVE_SETTING_PROMPT.format(character=subject)
+    else:
+        prompt_content = SUBJECT_PROMPT.format(subject=subject, setting=setting)
     
     subject_response = client.chat.completions.create(
         model=model,
@@ -67,7 +73,7 @@ def fetch_style_detail(client, model, style):
     model (str) -- a valid OpenAI API model string, e.g. 'gpt-4'
     style (str) -- a string describing a subject in plain english, for LLM use.
     '''
-    prompt_content = STYLE_PROMPT.format(style)
+    prompt_content = STYLE_PROMPT.format(style=style)
     
     style_response = client.chat.completions.create(
         model=model,
@@ -97,7 +103,7 @@ def fetch_dalle_prompt(client, model, image_content_description, image_style_det
     image_content_description (str) -- a string describing a subject in plain english, for LLM use.
     image_style_details (str) -- a string describing an art style in plain english, for LLM use.
     '''
-    prompt_content = IMG_PROMPT_REQUEST.format(image_content_description, image_style_details)
+    prompt_content = IMG_PROMPT_REQUEST.format(content=image_content_description, style=image_style_details)
 
     image_prompt_response = client.chat.completions.create(
         model=model,
@@ -117,7 +123,7 @@ def fetch_dalle_prompt(client, model, image_content_description, image_style_det
     return generated_image_prompt
 
 
-def fetch_character_description(client, model, character):
+def fetch_character_description(client, model, character, variation_count=1):
     '''
     Use the supplied args and OpenAI client to fetch a more
     detailed description of the art style from OpenAI.
@@ -126,7 +132,7 @@ def fetch_character_description(client, model, character):
     model (str) -- a valid OpenAI API model string, e.g. 'gpt-4'
     character (str) -- the name of a well-known character, for LLM use.
     '''
-    prompt_content = CHARACTER_PROMPT.format(character)
+    prompt_content = CHARACTER_PROMPT.format(character=character)
 
     image_prompt_response = client.chat.completions.create(
         model=model,
@@ -139,11 +145,9 @@ def fetch_character_description(client, model, character):
         max_tokens=250,
         top_p=1,
         frequency_penalty=0,
-        presence_penalty=0
+        presence_penalty=0,
+        n=variation_count
     )
-    character_description = image_prompt_response.choices[0].message.content
-    
-    return character_description
 
-# Limit the export, don't export the raw prompt formatters.
-__all__ = [fetch_dalle_prompt, fetch_style_detail, fetch_scene_details]
+    character_description = image_prompt_response.choices
+    return character_description

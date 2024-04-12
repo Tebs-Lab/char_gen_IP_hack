@@ -9,11 +9,15 @@ from urllib.request import urlretrieve
 import webbrowser
 
 import prompts
+import embedding_management
 
 from openai import OpenAI
 
 def main():
     parser = argparse.ArgumentParser()
+
+    # Subject options
+    parser.add_argument("-a", "--native", help="Instead of prompting for a setting, tell GPT to describe the character in an 'appropriate setting'", action='store_true')
 
     # Model type options
     parser.add_argument("-g", "--gpt", help="GPT model version string, default 'gpt-4'", type=str, default="gpt-4", choices=['gpt-4', 'gpt-4-turbo-preview', 'gpt-3.5-turbo', 'gpt-3.5-turbo-instruct', 'babbage-002', 'davinci-002'])
@@ -24,7 +28,8 @@ def main():
     parser.add_argument("-q", "--quality", help="DALL-E image quality string, default 'standard'", type=str, default='standard', choices=['standard', 'hd'])
     
     # Warning, n isn't well supported on the dall-e-3 api
-    parser.add_argument("-n", "--img_num", help="DALL-E number of images to generate. Warning: Not supported by dall-e-3.", type=int, default=1, choices=range(1,11))
+    parser.add_argument("-m", "--img-num", help="DALL-E number of images to generate. Warning: Not supported by dall-e-3.", type=int, default=1, choices=range(1,11))
+    parser.add_argument("-v", "--variation-num", help="GPT number of descriptions to generate and rank.", type=int, default=1, choices=range(1,11))
 
     # Output options
     parser.add_argument("-t", "--text", help="Only print the final image prompt, do not send it to DALL-E", action='store_true')
@@ -54,7 +59,9 @@ def main():
     character_name = input("Character: ")
     name_replacement = input("Name replacement: ")
 
-    image_setting = input("Setting: ")
+    image_setting = None
+    if not args.native:
+        image_setting = input("Setting: ")
     logger.debug("Setting stored as %s", image_setting)
 
     image_style = input("Style: ")
@@ -63,7 +70,21 @@ def main():
     logger.debug("Character stored as %s to be replaced with %s", character_name, name_replacement)
     text_to_save = f'Character: {character_name}\nReplacement: {name_replacement}\nStyle: {image_style}\n\n'
 
-    image_subject = prompts.fetch_character_description(client, args.gpt, character_name)
+    image_subjects = prompts.fetch_character_description(client, args.gpt, character_name, args.variation_num)
+
+    if args.variation_num > 1:
+        # TODO: perhaps this magic string is bad idea.
+        subject_descriptions = [choice.message.content for choice in image_subjects]
+        all_choices = embedding_management.sort_by_nearest(client, 'text-embedding-3-large', prompts.CHARACTER_PROMPT.format(character=character_name), subject_descriptions)
+        text_to_save += 'Subject Descriptions ranked by embedding distance:\n\n'
+        if args.interim: print('Subject Descriptions ranked by embedding distance:\n\n')
+        for choice in all_choices:
+            text_to_save += f'  {choice[1]}: {choice[0]}'
+            if args.interim: print(f'  {choice[1]}: {choice[0]}')
+        image_subject = all_choices[0][0]
+    else:
+        image_subject = image_subject[0].message.content
+
     text_to_save += f'Expanded Character Details:\n{image_subject}\n\n'
     if args.interim:
         print(f'Expanded Character Details:\n{image_subject}\n\n')
@@ -76,14 +97,14 @@ def main():
     for name_component in character_name.split(' '):
         image_subject = image_subject.replace(name_component, name_replacement)
     
-    text_to_save = f'Subject: {image_subject}\nSetting: {image_setting}\nStyle: {image_style}\n\n'
+    text_to_save += f'Subject: {image_subject}\nSetting: {image_setting}\nStyle: {image_style}\n\n'
     content_details = prompts.fetch_scene_details(client, args.gpt, image_subject, image_setting)
 
     text_to_save += f'Content Detail:\n{content_details}\n\n'
     if args.interim:
         print(f'Content details:\n{content_details}\n')
 
-    ## Common Prompts
+
     style_details = prompts.fetch_style_detail(client, args.gpt, image_style)
     text_to_save += f'Style details:\n{style_details}\n\n'
     if args.interim:
