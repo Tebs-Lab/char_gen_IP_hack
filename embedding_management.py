@@ -29,15 +29,3 @@ def sort_by_nearest(client, embedding_model, key_text, query_texts):
     for_sorting.sort(key = lambda x: x[1], reverse=True)
 
     return for_sorting
-
-
-# from openai import OpenAI
-
-# client = OpenAI()
-# model = 'text-embedding-3-large'
-# character = 'a detailed physical description of Nintendo Mario'
-# fit_text = 'a robust yet powerful Italian plumber with lively eyes, thick eyebrows, and a distinct mustache under a rounded, reddish-brown nose. He is donned in a bright red hat, decorated with a symbolic emblem, and fitted overalls fastened by big yellow buttons over a blue long-sleeve shirt.'
-
-# embeddings = sort_by_nearest(client, model, character, [fit_text, "an Italian plumber", "an Italian plumber in a red hat"])
-# for text, embedding, cos_sim, euc in embeddings:
-#     print(text, cos_sim, euc)

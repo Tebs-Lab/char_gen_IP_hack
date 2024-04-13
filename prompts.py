@@ -21,16 +21,23 @@ NATIVE_SETTING_PROMPT = 'Take the following character and describe it in an appr
 
 STYLE_PROMPT = 'Create a 50 word summary of the visual aspects of the following artistic style: {style}'
 
-IMG_PROMPT_REQUEST = '''Write a prompt for an image generator using the following content and style in 150 words.
+LEVEL_3_IMG_PROMPT_REQUEST = '''Write a prompt for an image generator using the following content and style in 150 words.
 
 Image content: {content}
 
 Image Style: {style}
 '''
 
-SIMPLIFIED_IMG_PROMPT = '''Generate an image of {scene_details}.
+LEVEL_2_IMG_PROMPT = '''Generate an image of {scene_details}.
 
 Use the style: {style}
+'''
+
+LEVEL_1_IMAGE_PROMPT = '''Generate an image of {character_details}.
+
+Show them: {setting_details}
+
+Use the style: {style_details}
 '''
 
 
@@ -108,7 +115,7 @@ def fetch_dalle_prompt(client, model, image_content_description, image_style_det
     image_content_description (str) -- a string describing a subject in plain english, for LLM use.
     image_style_details (str) -- a string describing an art style in plain english, for LLM use.
     '''
-    prompt_content = IMG_PROMPT_REQUEST.format(content=image_content_description, style=image_style_details)
+    prompt_content = LEVEL_3_IMG_PROMPT_REQUEST.format(content=image_content_description, style=image_style_details)
 
     image_prompt_response = client.chat.completions.create(
         model=model,
@@ -146,7 +153,7 @@ def fetch_character_description(client, model, character, variation_count=1):
             "role": "user",
             "content": prompt_content
         }],
-        temperature=0.5,
+        temperature=1,
         max_tokens=250,
         top_p=1,
         frequency_penalty=0,

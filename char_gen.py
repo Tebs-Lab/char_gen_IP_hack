@@ -28,7 +28,7 @@ def main():
     # Image generation parameters
     parser.add_argument("-z", "--size", help="DALL-E image size string, default '1024x1024'. dall-e-2 only supports the default size.", type=str, default='1024x1024', choices=['1024x1024', '1024x1792', '1792x1024'])
     parser.add_argument("-q", "--quality", help="DALL-E image quality string, default 'standard'", type=str, default='standard', choices=['standard', 'hd'])
-    parser.add_argument("-e", "--simple", help="Use the simplified final image prompt.", action="store_true")
+    parser.add_argument("-e", "--simple", help="Prompt simplification. 0: only fetch character details, 1: fetch character and style details. 2: fetch combined character and setting detail, plus separate style details. 3: fetch combined character and setting, then fetch combined scene and style details.", type=int, choices=[0,1,2,3], default=1)
 
     # Warning, n isn't well supported on the dall-e-3 api
     parser.add_argument("-m", "--img-num", help="DALL-E number of images to generate. Warning: Not supported by dall-e-3.", type=int, default=1, choices=range(1,11))
@@ -111,25 +111,33 @@ def main():
         print(f'Scrubbed Character Details:\n{image_subject}\n\n')
     
 
-    ## Combine Setting With Character ##
-    content_details = prompts.fetch_scene_details(client, args.gpt, image_subject, image_setting)
-    text_to_save += f'Content Detail:\n{content_details}\n\n'
-    if args.interim:
-        print(f'Content details:\n{content_details}\n\n')
-
-
     ## Fetch Style Details ##
-    style_details = prompts.fetch_style_detail(client, args.gpt, image_style)
-    text_to_save += f'Style details:\n{style_details}\n\n'
+    if args.simple > 0:
+        style_details = prompts.fetch_style_detail(client, args.gpt, image_style)
+        text_to_save += f'Style details:\n{style_details}\n\n'
+    else: 
+        style_details = image_style
+    
     if args.interim:
         print(f'Style details:\n{style_details}\n\n')
 
+
     ## Image Generation Section ##
-    if args.simple:
-        image_prompt = prompts.SIMPLIFIED_IMG_PROMPT.format(scene_details=content_details, style=style_details)
+    ## Combine Setting With Character ##
+    if args.simple <= 1:
+        image_prompt = prompts.LEVEL_1_IMAGE_PROMPT.format(character_details=image_subject, setting_details=image_setting, style_details=style_details)
     else:
-        image_prompt = prompts.fetch_dalle_prompt(client, args.gpt, content_details, style_details)
-    
+        content_details = prompts.fetch_scene_details(client, args.gpt, image_subject, image_setting)
+        text_to_save += f'Content Detail:\n{content_details}\n\n'
+        if args.interim:
+            print(f'Content details:\n{content_details}\n\n')
+
+        if args.simple == 2:
+            image_prompt = prompts.LEVEL_2_IMG_PROMPT.format(scene_details=content_details, style=style_details)
+        elif args.simple == 3:
+            image_prompt = prompts.fetch_dalle_prompt(client, args.gpt, content_details, style_details)
+
+
     text_to_save += f'Final prompt:\n{image_prompt}\n\n'
 
     # dall-e-2 has a 1000 character max for prompt, dall-e-3 is 4000 characters
