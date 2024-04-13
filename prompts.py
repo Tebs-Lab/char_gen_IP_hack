@@ -8,6 +8,8 @@ generate a final engineered image prompt.
 
 # These constants are written this way for formatting purposes.
 # We don't want a bunch of tab characters going to GPT.
+CHARACTER_PROMPT = 'Give a detailed physical description of the character {character} in 50 words.'
+
 SUBJECT_PROMPT = '''Create a detailed physical description of the following subject and setting in 100 words.
 
 Subject: {subject}
@@ -26,7 +28,10 @@ Image content: {content}
 Image Style: {style}
 '''
 
-CHARACTER_PROMPT = 'Give a detailed physical description of the character {character} in 50 words.'
+SIMPLIFIED_IMG_PROMPT = '''Generate an image of {scene_details}.
+
+Use the style: {style}
+'''
 
 
 
@@ -141,7 +146,7 @@ def fetch_character_description(client, model, character, variation_count=1):
             "role": "user",
             "content": prompt_content
         }],
-        temperature=1,
+        temperature=0.5,
         max_tokens=250,
         top_p=1,
         frequency_penalty=0,
