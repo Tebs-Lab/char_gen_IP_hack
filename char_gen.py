@@ -18,35 +18,101 @@ def main():
     parser = argparse.ArgumentParser()
 
     # Subject options
-    parser.add_argument("-a", "--native", help="Instead of prompting for a setting, tell GPT to describe the character in an 'appropriate setting'", action='store_true')
+    parser.add_argument("-a", "--native", 
+        help="Instead of prompting for a setting, tell GPT to describe the character in an 'appropriate setting'",
+        action='store_true'
+    )
 
     # Model type options
-    parser.add_argument("-g", "--gpt", help="GPT model version string, default 'gpt-4'", type=str, default="gpt-4", choices=['gpt-4', 'gpt-4-turbo-preview', 'gpt-3.5-turbo', 'gpt-3.5-turbo-instruct', 'babbage-002', 'davinci-002'])
-    parser.add_argument("-d", "--dalle", help="DALL-E model version string, default 'dall-e-3'", type=str, default="dall-e-3", choices=['dall-e-3', 'dall-e-2'])
+    parser.add_argument("-g", "--gpt", 
+        help="GPT model version string, default 'gpt-4'", 
+        type=str,
+        default="gpt-4o", 
+        choices=['gpt-4o', 'gpt-4', 'gpt-4-turbo-preview', 'gpt-3.5-turbo', 'gpt-3.5-turbo-instruct', 'babbage-002', 'davinci-002']
+    )
+
+    parser.add_argument("-d", "--dalle", 
+        help="DALL-E model version string, default 'dall-e-3'",
+        type=str, 
+        default="dall-e-3", 
+        choices=['dall-e-3', 'dall-e-2']
+    )
     
 
     # Image generation parameters
-    parser.add_argument("-z", "--size", help="DALL-E image size string, default '1024x1024'. dall-e-2 only supports the default size.", type=str, default='1024x1024', choices=['1024x1024', '1024x1792', '1792x1024'])
-    parser.add_argument("-q", "--quality", help="DALL-E image quality string, default 'standard'", type=str, default='standard', choices=['standard', 'hd'])
-    parser.add_argument("-e", "--simple", help="Prompt simplification. 0: only fetch character details, 1: fetch character and style details. 2: fetch combined character and setting detail, plus separate style details. 3: fetch combined character and setting, then fetch combined scene and style details.", type=int, choices=[0,1,2,3], default=1)
+    parser.add_argument("-z", "--size", 
+        help="DALL-E image size string, default '1024x1024'. dall-e-2 only supports the default size.", 
+        type=str, 
+        default='1024x1024', 
+        choices=['1024x1024', '1024x1792', '1792x1024']
+    )
+
+    parser.add_argument("-q", "--quality", 
+        help="DALL-E image quality string, default 'standard'", 
+        type=str, 
+        default='standard', 
+        choices=['standard', 'hd']
+    )
+
+    parser.add_argument("-e", "--simple", 
+        help="Prompt simplification. 0: only fetch character details, 1: fetch character and style details. 2: fetch combined character and setting detail, plus separate style details. 3: fetch combined character and setting, then fetch combined scene and style details.", 
+        type=int, 
+        choices=[0,1,2,3], 
+        default=3
+    )
 
     # Warning, n isn't well supported on the dall-e-3 api
-    parser.add_argument("-m", "--img-num", help="DALL-E number of images to generate. Warning: Not supported by dall-e-3.", type=int, default=1, choices=range(1,11))
-    parser.add_argument("-v", "--variation-num", help="GPT number of descriptions to generate and rank.", type=int, default=1, choices=range(1,11))
+    parser.add_argument("-m", "--img-num", 
+        help="DALL-E number of images to generate. Warning: Not supported by dall-e-3.", 
+        type=int, 
+        default=1, 
+        choices=range(1,11)
+    )
+
+    parser.add_argument("-v", "--variation-num",
+        help="GPT number of descriptions to generate and rank.", 
+        type=int, 
+        default=1, 
+        choices=range(1,11)
+    )
 
     # Output options
-    parser.add_argument("-t", "--text", help="Only print the final image prompt, do not send it to DALL-E", action='store_true')
-    parser.add_argument("-p", "--open", help="Automatically open all URL's returned by DALL-E", action='store_true')
-    parser.add_argument("-i", "--interim", help="Print all the interim text results from GPT", action='store_true')
-    parser.add_argument("-s", "--save", help="Save all the prompts and the generated image.", type=str, default=None)
+    parser.add_argument("-t", "--text", 
+        help="Only print the final image prompt, do not send it to DALL-E", 
+        action='store_true'
+    )
+    parser.add_argument("-p", "--open", 
+        help="Automatically open all URL's returned by DALL-E", 
+        action='store_true'
+    )
+    parser.add_argument("-i", "--interim",
+        help="Print all the interim text results from GPT", 
+        action='store_true'
+    )
+    parser.add_argument("-s", "--save", 
+        help="Save all the prompts and the generated image.", 
+        type=str, 
+        default=None
+    )
     
     # Logging
-    parser.add_argument("-l", "--log-level", help="Log level, 5: critical, 4: error, 3: warning, 2: info, 1: debug. Default: 5", type=int, choices=[1,2,3,4,5], default=5)
-    parser.add_argument("-f", "--log-file",  help="A filename relative to CWD for the logs. If None logs are sent to stdout. Default: None", type=str, default=None)
+    parser.add_argument("-l", "--log-level", 
+        help="Log level, 5: critical, 4: error, 3: warning, 2: info, 1: debug. Default: 5", 
+        type=int, 
+        choices=[1,2,3,4,5], 
+        default=5
+    )
+    
+    parser.add_argument("-f", "--log-file",
+        help="A filename relative to CWD for the logs. If None logs are sent to stdout. Default: None", 
+        type=str, 
+        default=None
+    )
 
     args = parser.parse_args()
 
-    ## Logging and Save Setup ##
+
+    ##### Logging and Save Setup ####
     if args.log_file is None:
         logging.basicConfig(stream=sys.stdout, level=10 * args.log_level)
     else:
